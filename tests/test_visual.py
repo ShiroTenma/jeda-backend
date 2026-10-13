@@ -33,9 +33,11 @@ def test_analyze_frame_api_success(sample_jpeg_bytes):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "confidence" in data
-    assert "latency_ms" in data
-    assert 0.0 <= data["confidence"] <= 1.0
+    assert "visual_confidence" in data
+    assert "rrs" in data
+    assert "level" in data
+    assert "action" in data
+    assert 0.0 <= data["visual_confidence"] <= 1.0
 
 def test_analyze_frame_api_invalid_content_type():
     response = client.post(
