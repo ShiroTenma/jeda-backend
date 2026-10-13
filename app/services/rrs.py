@@ -94,12 +94,10 @@ class RrsEngine:
             
             # Gating rules:
             # - Must have at least 3 valid observations
-            # - Must have reached required soft intervention count (baseline 3)
-            # - Current observation and Pavg must be sustained
+            # - For visual path (especially browsers), sustained high visual risk triggers HARD_INTERVENTION directly
             has_3_obs = len(recent) >= 3
-            has_enough_soft = soft_intervention_count >= self.required_soft_interventions
 
-            if has_3_obs and has_enough_soft:
+            if has_3_obs:
                 action = "HARD_INTERVENTION"
                 # Duration formula: 60s base + 30s per soft intervention beyond 3, capped at 180s
                 extra = max(0, soft_intervention_count - 3)

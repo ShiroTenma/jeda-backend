@@ -10,15 +10,14 @@ class VisualClassifier:
     
     _instance: "VisualClassifier | None" = None
 
-    def __init__(self, model_path: str = "models/nsfw_model_quantized.onnx"):
+    def __init__(self, model_path: str = "models/nsfw_classifier_5class_quantized.onnx"):
         self.model_path = Path(model_path)
         if not self.model_path.exists():
-            # Fallback to baseline classifier if real model is absent
-            fallback = Path("models/baseline_classifier.onnx")
+            fallback = Path("models/nsfw_model_quantized.onnx")
             if fallback.exists():
                 self.model_path = fallback
             else:
-                raise FileNotFoundError(f"ONNX model not found at {model_path}")
+                self.model_path = Path("models/baseline_classifier.onnx")
 
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = 4
@@ -34,7 +33,7 @@ class VisualClassifier:
         self.is_vit_nsfw = "pixel_values" in self.input_name
 
     @classmethod
-    def get_instance(cls, model_path: str = "models/nsfw_model_quantized.onnx") -> "VisualClassifier":
+    def get_instance(cls, model_path: str = "models/nsfw_classifier_5class_quantized.onnx") -> "VisualClassifier":
         if cls._instance is None:
             cls._instance = cls(model_path)
         return cls._instance
@@ -69,11 +68,16 @@ class VisualClassifier:
         latency_ms = (time.perf_counter() - t0) * 1000.0
 
         raw_out = outputs[0][0]
-        if self.is_vit_nsfw:
-            # ViT outputs logits [normal_logit, nsfw_logit]. Apply softmax:
+        if len(raw_out) == 5:
+            # 5-class model: 0: drawings, 1: hentai, 2: neutral, 3: porn, 4: sexy
             exp_logits = np.exp(raw_out - np.max(raw_out))
             probs = exp_logits / np.sum(exp_logits)
-            # Label 0: normal, Label 1: nsfw
+            # Explicit/adult score = sum of hentai + porn + sexy
+            risk_confidence = float(probs[1] + probs[3] + probs[4])
+        elif self.is_vit_nsfw:
+            # 2-class ViT model: 0: normal, 1: nsfw
+            exp_logits = np.exp(raw_out - np.max(raw_out))
+            probs = exp_logits / np.sum(exp_logits)
             risk_confidence = float(probs[1])
         else:
             probs = raw_out
