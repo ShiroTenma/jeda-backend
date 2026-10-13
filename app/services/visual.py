@@ -10,10 +10,15 @@ class VisualClassifier:
     
     _instance: "VisualClassifier | None" = None
 
-    def __init__(self, model_path: str = "models/baseline_classifier.onnx"):
+    def __init__(self, model_path: str = "models/nsfw_model_quantized.onnx"):
         self.model_path = Path(model_path)
         if not self.model_path.exists():
-            raise FileNotFoundError(f"ONNX model not found at {model_path}")
+            # Fallback to baseline classifier if real model is absent
+            fallback = Path("models/baseline_classifier.onnx")
+            if fallback.exists():
+                self.model_path = fallback
+            else:
+                raise FileNotFoundError(f"ONNX model not found at {model_path}")
 
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = 4
@@ -26,9 +31,10 @@ class VisualClassifier:
         )
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
+        self.is_vit_nsfw = "pixel_values" in self.input_name
 
     @classmethod
-    def get_instance(cls, model_path: str = "models/baseline_classifier.onnx") -> "VisualClassifier":
+    def get_instance(cls, model_path: str = "models/nsfw_model_quantized.onnx") -> "VisualClassifier":
         if cls._instance is None:
             cls._instance = cls(model_path)
         return cls._instance
@@ -39,9 +45,15 @@ class VisualClassifier:
         image = image.resize((224, 224), Image.Resampling.BILINEAR)
         arr = np.array(image, dtype=np.float32) / 255.0  # [224, 224, 3]
         
-        # Standard ImageNet normalization: (x - mean) / std
-        mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        if self.is_vit_nsfw:
+            # ViT preprocessor uses mean=0.5, std=0.5
+            mean = np.array([0.5, 0.5, 0.5], dtype=np.float32)
+            std = np.array([0.5, 0.5, 0.5], dtype=np.float32)
+        else:
+            # Standard ImageNet mean and std
+            mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+            std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+
         arr = (arr - mean) / std
 
         # Transpose HWC -> CHW, add batch dimension -> NCHW [1, 3, 224, 224]
@@ -56,7 +68,15 @@ class VisualClassifier:
         outputs = self.session.run([self.output_name], {self.input_name: tensor})
         latency_ms = (time.perf_counter() - t0) * 1000.0
 
-        probs = outputs[0][0]
-        # Assume class 1 represents target risk / explicit confidence
-        risk_confidence = float(probs[1]) if len(probs) > 1 else float(probs[0])
+        raw_out = outputs[0][0]
+        if self.is_vit_nsfw:
+            # ViT outputs logits [normal_logit, nsfw_logit]. Apply softmax:
+            exp_logits = np.exp(raw_out - np.max(raw_out))
+            probs = exp_logits / np.sum(exp_logits)
+            # Label 0: normal, Label 1: nsfw
+            risk_confidence = float(probs[1])
+        else:
+            probs = raw_out
+            risk_confidence = float(probs[1]) if len(probs) > 1 else float(probs[0])
+
         return risk_confidence, latency_ms

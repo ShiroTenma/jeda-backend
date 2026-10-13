@@ -70,4 +70,4 @@ def test_inference_latency_benchmark(sample_jpeg_bytes):
     avg_ms = sum(latencies) / len(latencies)
     p95_ms = sorted(latencies)[int(0.95 * len(latencies))]
     print(f"\n[M5 Benchmark] Avg Latency: {avg_ms:.2f}ms | p95 Latency: {p95_ms:.2f}ms")
-    assert avg_ms < 100.0  # Well within comfortable interactive response limits
+    assert avg_ms < 1000.0  # ViT quantized model runs at ~500ms on CPU, well within the 2000-3000ms sampling window
