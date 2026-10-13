@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.api.behavior import router as behavior_router
 from app.api.visual import router as visual_router
+from app.api.cognitive import router as cognitive_router
 from app.config import get_settings
 
 logger = logging.getLogger("jeda")
@@ -34,3 +35,4 @@ def health() -> dict[str, str]:
 
 app.include_router(behavior_router)
 app.include_router(visual_router)
+app.include_router(cognitive_router)
