@@ -159,11 +159,15 @@ Hasil inspeksi file ONNX lokal:
 
 Preprocessing dan interpretasi skor diimplementasikan dalam `app/services/visual.py`. Pada model lima kelas, kode mengasumsikan urutan **drawings, hentai, neutral, porn, sexy** dan menghitung risiko sebagai jumlah probabilitas `hentai + porn + sexy`. Interpretasi ini merupakan keputusan implementasi JEDA.
 
-### Kandidat sumber model (belum terverifikasi)
+### Sumber model dan atribusi
 
-Model [LukeJacob2023/nsfw-image-detector](https://huggingface.co/LukeJacob2023/nsfw-image-detector) di Hugging Face merupakan **kandidat sumber** karena menggunakan arsitektur Vision Transformer berukuran 224 piksel dengan lima label pada urutan yang sama. Repositori [onnx-community/nsfw-image-detector-ONNX](https://huggingface.co/onnx-community/nsfw-image-detector-ONNX) juga merujuk model tersebut. **Kesesuaian ini belum membuktikan bahwa file ONNX JEDA berasal dari salah satu repositori itu.** Identitas sumber, lisensi spesifik file, proses konversi, dan asal dataset belum dikonfirmasi.
+Model lima kelas yang digunakan JEDA berasal dari model pihak ketiga **[LukeJacob2023/nsfw-image-detector](https://huggingface.co/LukeJacob2023/nsfw-image-detector)** di Hugging Face, sebagaimana dikonfirmasi oleh pengembang JEDA. Pemilik/penerbit model asal adalah **LukeJacob2023**, dan halaman Hugging Face mencantumkan **lisensi Apache-2.0** untuk repositori model tersebut.
 
-Menurut model card kandidat tersebut, pengembang aslinya menggunakan dataset kustom sekitar 28.000 gambar. Informasi ini adalah **klaim dari model card kandidat**, bukan dataset yang dikumpulkan, digunakan untuk training, atau dievaluasi sendiri oleh tim JEDA.
+File `nsfw_classifier_5class_quantized.onnx` adalah artefak ONNX terkuantisasi yang digunakan aplikasi. **Asal model dasarnya diketahui, tetapi jalur pengunduhan spesifik, versi/revisi model, dan siapa yang melakukan konversi/kuantisasi belum terdokumentasi**. Repositori [onnx-community/nsfw-image-detector-ONNX](https://huggingface.co/onnx-community/nsfw-image-detector-ONNX) merupakan referensi konversi ONNX yang relevan, tetapi belum terkonfirmasi sebagai lokasi pengunduhan artefak JEDA.
+
+Model card pihak ketiga menyebut penggunaan dataset kustom untuk pelatihan. **Tim JEDA tidak membuat dataset tersebut, tidak melakukan pelatihan model dasar, dan tidak mengklaim hasil evaluasi model aslinya sebagai hasil evaluasi JEDA.** Detail sumber dataset dan izin penggunaannya perlu dirujuk ke dokumentasi pemilik model.
+
+Asal pasti file dua kelas `nsfw_model_quantized.onnx` **masih belum teridentifikasi**; jangan mengasumsikan file tersebut memiliki sumber atau lisensi yang identik hanya karena arsitekturnya serupa.
 
 ### Batasan
 
