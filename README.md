@@ -143,6 +143,35 @@ Alamat `0.0.0.0` digunakan sebagai bind address server, **bukan** alamat yang di
 
 Endpoint yang dilindungi menggunakan header `X-Backend-Token`. Untuk payload dan respons yang akurat, lihat skema di `app/schemas/` atau dokumentasi OpenAPI saat server berjalan.
 
+## Model Visual dan Atribusi
+
+JEDA menggunakan **model klasifikasi visual pihak ketiga** untuk prototipe analisis frame. Pengembang JEDA **tidak mengklaim telah melatih model tersebut maupun membuat dataset pelatihannya**.
+
+### Artefak model
+
+Hasil inspeksi file ONNX lokal:
+
+| File | Input / output | Keterangan |
+| --- | --- | --- |
+| `nsfw_classifier_5class_quantized.onnx` | `pixel_values` → `logits` (5 kelas) | Quantized Vision Transformer, model utama |
+| `nsfw_model_quantized.onnx` | `pixel_values` → `logits` (2 kelas) | Quantized Vision Transformer, fallback |
+| `baseline_classifier.onnx` | `input` → `probabilities` (2 kelas) | Model baseline sederhana berlabel `jeda-baseline`, fallback terakhir |
+
+Preprocessing dan interpretasi skor diimplementasikan dalam `app/services/visual.py`. Pada model lima kelas, kode mengasumsikan urutan **drawings, hentai, neutral, porn, sexy** dan menghitung risiko sebagai jumlah probabilitas `hentai + porn + sexy`. Interpretasi ini merupakan keputusan implementasi JEDA.
+
+### Kandidat sumber model (belum terverifikasi)
+
+Model [LukeJacob2023/nsfw-image-detector](https://huggingface.co/LukeJacob2023/nsfw-image-detector) di Hugging Face merupakan **kandidat sumber** karena menggunakan arsitektur Vision Transformer berukuran 224 piksel dengan lima label pada urutan yang sama. Repositori [onnx-community/nsfw-image-detector-ONNX](https://huggingface.co/onnx-community/nsfw-image-detector-ONNX) juga merujuk model tersebut. **Kesesuaian ini belum membuktikan bahwa file ONNX JEDA berasal dari salah satu repositori itu.** Identitas sumber, lisensi spesifik file, proses konversi, dan asal dataset belum dikonfirmasi.
+
+Menurut model card kandidat tersebut, pengembang aslinya menggunakan dataset kustom sekitar 28.000 gambar. Informasi ini adalah **klaim dari model card kandidat**, bukan dataset yang dikumpulkan, digunakan untuk training, atau dievaluasi sendiri oleh tim JEDA.
+
+### Batasan
+
+- Output klasifikasi merupakan estimasi statistik dan dapat menghasilkan false positive atau false negative.
+- Hasil evaluasi model dari pihak ketiga tidak otomatis berlaku pada data dan perangkat JEDA.
+- Risiko yang dihitung JEDA dari probabilitas klasifikasi tidak boleh dianggap ukuran klinis atau validasi perilaku.
+- Sebelum mendistribusikan model atau mempublikasikan klaim performa, verifikasi provenance, lisensi, dan evaluasi pada data yang relevan.
+
 ## Struktur Proyek
 
 ```text
